@@ -1,0 +1,1 @@
+tofu import hetznerrobot_firewall_template.base 123

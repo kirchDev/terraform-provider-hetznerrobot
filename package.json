@@ -1,33 +1,28 @@
 {
   "$schema": "https://www.schemastore.org/package.json",
-  "name": "scaffold",
-  "version": "0.4.1",
-  "description": "Language-agnostic baseline template for new kirchDev repositories.",
+  "name": "terraform-provider-hetznerrobot",
+  "version": "0.0.0",
+  "description": "OpenTofu / Terraform provider for Hetzner Robot (dedicated servers).",
   "keywords": [
-    "commitlint",
-    "conventional-commits",
-    "dependabot",
-    "github-template",
-    "husky",
+    "dedicated-server",
+    "hetzner",
+    "hetzner-robot",
+    "iac",
+    "infrastructure-as-code",
     "kirchdev",
-    "nodejs",
-    "oxfmt",
-    "oxlint",
-    "pnpm",
-    "release-please",
-    "scaffold",
-    "template",
-    "typescript"
+    "opentofu",
+    "terraform",
+    "terraform-provider"
   ],
-  "homepage": "https://github.com/TitusKirch/scaffold#readme",
+  "homepage": "https://github.com/kirchDev/terraform-provider-hetznerrobot#readme",
   "bugs": {
-    "url": "https://github.com/TitusKirch/scaffold/issues"
+    "url": "https://github.com/kirchDev/terraform-provider-hetznerrobot/issues"
   },
   "license": "MIT",
   "author": "Titus Kirch <titus.kirch@kirch.dev>",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/TitusKirch/scaffold.git"
+    "url": "git+https://github.com/kirchDev/terraform-provider-hetznerrobot.git"
   },
   "type": "module",
   "scripts": {
@@ -45,19 +40,19 @@
     "prepare": "husky"
   },
   "devDependencies": {
-    "@commitlint/cli": "^21.2.2",
-    "@commitlint/config-conventional": "^21.2.2",
-    "@commitlint/types": "^21.2.0",
-    "@types/node": "^26.4.0",
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
+    "@commitlint/types": "^21.2.3",
+    "@types/node": "^26.6.4",
     "husky": "^9.1.7",
-    "lint-staged": "^17.4.1",
-    "oxfmt": "0.65.0",
-    "oxlint": "1.80.0",
-    "taze": "^21.1.0",
+    "lint-staged": "^17.6.0",
+    "oxfmt": "0.72.0",
+    "oxlint": "1.87.0",
+    "taze": "^21.3.0",
     "typescript": "^7.0.2"
   },
   "engines": {
     "node": ">=24"
   },
-  "packageManager": "pnpm@12.3.4"
+  "packageManager": "pnpm@12.10.1"
 }

@@ -1,114 +1,138 @@
 <div align="center">
 
-# 🏗️ scaffold
+# 🖥️ terraform-provider-hetznerrobot
 
-**The kirchDev baseline — everything a new repo should ship with on day one, nothing more**
+**Manage Hetzner Robot as code — dedicated servers, IPs, failover, rDNS, firewalls, vSwitches, Storage Boxes and orders, reconciled by OpenTofu**
+
+[![Release](https://img.shields.io/github/v/release/kirchDev/terraform-provider-hetznerrobot?style=flat-square&label=release&color=1E88E5)](https://github.com/kirchDev/terraform-provider-hetznerrobot/releases/latest)
+[![OpenTofu Registry](https://img.shields.io/badge/opentofu-kirchdev%2Fhetznerrobot-FFDA18?style=flat-square&logo=opentofu&logoColor=black)](https://search.opentofu.org/provider/kirchdev/hetznerrobot/latest)
+[![Terraform Registry](https://img.shields.io/badge/terraform-kirchdev%2Fhetznerrobot-7b42bc?style=flat-square&logo=terraform&logoColor=white)](https://registry.terraform.io/providers/kirchDev/hetznerrobot/latest)
+[![Tests](https://img.shields.io/github/actions/workflow/status/kirchDev/terraform-provider-hetznerrobot/ci.yml?branch=main&style=flat-square&label=tests)](https://github.com/kirchDev/terraform-provider-hetznerrobot/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/github/license/kirchDev/terraform-provider-hetznerrobot?style=flat-square&color=1E88E5)](LICENSE)
 
 </div>
 
 ---
 
-```bash
-gh repo create my-new-repo --template TitusKirch/scaffold
+```hcl
+resource "hetznerrobot_failover" "vip" {
+  ip               = "88.99.1.10"
+  active_server_ip = data.hetznerrobot_server.standby.server_ip
+}
 ```
 
-That's it. Click **Use this template** (or use `gh`), edit a handful of placeholders, and the meta layer — lint, format, commit hooks, CI, CodeQL, Dependabot, release-please — is already wired up.
-
-## ✨ What's in the box
-
-- **🟢 Node + pnpm pinned** — `.nvmrc` (Node 24), `pnpm-workspace.yaml` (pnpm 11 with sane defaults), `package.json` with `packageManager`.
-- **🧹 Lint & format via oxc** — `.oxlintrc.json`, `.oxfmtrc.json`, single `pnpm check` gate.
-- **🔷 TypeScript, no build step** — meta scripts and tool configs are `.ts`, run straight off Node 24's native type stripping; `tsconfig.json` + `pnpm typecheck`.
-- **🪝 Commit hooks** — Husky + `lint-staged` + `commitlint` enforcing Conventional Commits.
-- **🤖 Dependency PRs** — Dependabot (npm weekly, actions monthly) + `taze.config.ts` for interactive upgrades.
-- **🔁 release-please** — full workflow + config + manifest so the new repo can publish from its first commit.
-- **🛡️ GitHub workflows as calls** — six stubs pointing at central bodies in [`kirchDev/workflows`](https://github.com/kirchDev/workflows): CI, CodeQL, release-please, the promotion PR and the two queue workflows. 151 lines of trigger instead of 727 of copied pipeline, and a central fix arrives by Dependabot bump.
-- **📋 Issue / PR templates** — bug report, feature request, question (`.yml` forms) + PR checklist.
-- **📄 Standard meta** — `LICENSE`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `SECURITY.md`.
-- **🤖 Agent-ready** — `CLAUDE.md` + `AGENTS.md` (kept in sync), `.tituskirch-skills.json`, baseline `.claude/settings.json` permissions, `pnpm skills:update` wiring.
-
-The actual project code can be anything — PHP, Go, Rust, Vue, plain shell. `scaffold` only owns the meta layer that sits on top.
-
-## 🚀 Setup
-
-After clicking **Use this template**:
-
-1. Clone your new repo.
-2. Replace the placeholders listed in [Customising the template](#-customising-the-template).
-3. Reset release-please as described in [Resetting release-please](#-resetting-release-please) (only if you want to start at `v0.0.0`).
-4. `pnpm install` — Husky activates the hooks via the `prepare` script.
-5. Add your project code and ship the first commit:
-
-   ```bash
-   git commit -m "chore: initial commit from scaffold"
-   ```
-
-## 🤖 AI & skills
-
-Every repo from this template is agent-ready on day one:
-
-- **`CLAUDE.md` + `AGENTS.md`** — one set of guidance for Claude Code and vendor-neutral agent tools (Codex, OpenCode, Cursor, Copilot). Kept **byte-identical** — edit one, edit the other.
-- **`.claude/settings.json`** — baseline permissions: read-only git and the `pnpm` scripts are allowed; destructive git (`push`, `reset --hard`, `clean -f`, …) is denied.
-- **`.tituskirch-skills.json`** — configures the [TitusKirch skills](https://github.com/TitusKirch/skills) (commit, PR, issue, release, docs) per repo.
-
-Install the skill bundle, then keep project-scoped skills fresh:
-
-```bash
-pnpm dlx skills add TitusKirch/skills   # add the bundle — npx / yarn dlx / bunx work too
-pnpm skills:update                       # refresh project-scoped skills
-```
-
-## 🧰 Customising the template
-
-Every file below references `TitusKirch/scaffold`, the maintainer's name, or the maintainer's email. Search-and-replace these to your repo's identity before the first push.
-
-| File                                  | Replace                                                                          |
-| :------------------------------------ | :------------------------------------------------------------------------------- |
-| `package.json`                        | `name`, `description`, `homepage`, `bugs.url`, `repository.url`, `author`        |
-| `README.md`                           | Project title, tagline, hook snippet, every `TitusKirch/scaffold` link           |
-| `LICENSE`                             | Copyright year + holder                                                          |
-| `CODE_OF_CONDUCT.md`                  | Enforcement contact email                                                        |
-| `CONTRIBUTING.md`                     | Every `TitusKirch/scaffold` link, the development setup section                  |
-| `SECURITY.md`                         | Advisory URL, contact email, scope wording                                       |
-| `.github/ISSUE_TEMPLATE/*.yml`        | Generic as shipped. `config.yml` links questions/ideas/possible-bugs to the Discord forum — private repos without a forum drop that block; optionally add stack-specific version fields to `bug_report.yml` |
-| `.github/pull_request_template.md`    | Example commit message in the title hint                                         |
-| `release-please-config.json`          | `packages["."]["package-name"]`                                                  |
-| `CLAUDE.md` + `AGENTS.md`             | **Delete both** and regenerate with `/init` in Claude Code — scaffold-specific, keep byte-identical |
-
-> [!TIP]
-> A quick `grep -rn "TitusKirch/scaffold" .` catches every reference in one sweep.
+Your dedicated servers declared in HCL and reconciled by OpenTofu — not clicked together in Robot. Covers the complete [Robot webservice](https://robot.hetzner.com/doc/webservice/en.html); the Hetzner Cloud side stays with the official [`hcloud`](https://search.opentofu.org/provider/hetznercloud/hcloud/latest) provider.
 
 > [!IMPORTANT]
-> **Private repo?** Three defaults are public-only. Delete `.github/workflows/codeql.yml` (CodeQL needs GitHub Advanced Security — free only on public repos), swap the MIT `LICENSE` + README footer for a proprietary notice with `package.json` `"license": "UNLICENSED"`, and note that the workflow bodies live in a **public** repository — a private repo can still call them, but the reverse is not true.
+> **Pre-1.0, mock-tested.** Every resource and data source is built from the official documentation and runs through acceptance tests against an in-memory model of the webservice; it has **not yet been run against the live API** — see [Test status](#-test-status). Pin an exact version, and try `test = true` before a real order.
 
-## 🔁 Resetting release-please
+## 📦 Install & run
 
-`scaffold` ships with an initial manifest pinned at `0.0.0`. For most cases you can leave it alone — release-please will simply propose a first release PR after your first conventional commit on `main`. If you want a truly clean slate:
+```hcl
+terraform {
+  required_providers {
+    hetznerrobot = {
+      source  = "kirchdev/hetznerrobot"
+      version = "~> 0.1"
+    }
+  }
+}
 
-1. **Manifest** — make sure `.release-please-manifest.json` is `{ ".": "0.0.0" }` (the default).
-2. **Changelog** — delete `CHANGELOG.md` if your fresh repo somehow inherited one.
-3. **Config** — update `release-please-config.json` → `packages["."]["package-name"]` to your repo name.
-4. **Workflow permissions** — in **Settings → Actions → General → Workflow permissions**, enable **Read and write permissions** so release-please can open its PR.
-5. **Tags & releases (optional)** — if you copied the repo with history, drop old tags:
+provider "hetznerrobot" {} # HETZNER_ROBOT_USER / HETZNER_ROBOT_PASSWORD
 
-   ```bash
-   git tag -l | xargs -r git tag -d
-   ```
+data "hetznerrobot_server" "web" {
+  server_number = 321
+}
 
-   …and clear any stale entries on the GitHub **Releases** tab.
+resource "hetznerrobot_rdns" "web" {
+  ip  = data.hetznerrobot_server.web.server_ip
+  ptr = "web1.example.com"
+}
 
-6. **First commit** — push a Conventional Commit on `main` (`feat: …`, `fix: …`). release-please opens the initial release PR; merge it and your first tagged release ships.
+resource "hetznerrobot_firewall" "web" {
+  server_number = data.hetznerrobot_server.web.server_number
+  input_rules = [
+    { name = "ssh", ip_version = "ipv4", dst_port = "22", protocol = "tcp", action = "accept" },
+    { name = "https", ip_version = "ipv4", dst_port = "443", protocol = "tcp", action = "accept" },
+  ]
+}
+```
 
-## 💡 Why "scaffold" and not "template-\*"
+```bash
+export HETZNER_ROBOT_USER="..."      # Robot → Settings → Web service and app settings
+export HETZNER_ROBOT_PASSWORD="..."
+tofu plan
+```
 
-Single word, brandable, language-neutral. Future stack-specific templates can sit next to it as `scaffold-laravel`, `scaffold-nuxt`, etc.
+> [!WARNING]
+> Robot blocks the calling IP for **ten minutes after three failed logins**. Check the credentials before a plan loops over them.
+
+## ✨ Features
+
+- **🖥️ Complete webservice** — every documented endpoint is a resource or a data source, or deliberately left out (see below).
+- **🛡️ Safe with money and machines** — orders save their state the moment Robot accepts them and never re-order on a timeout; destroying an order, a server or a Storage Box only forgets it — cancelling is its own resource.
+- **🔁 One-shot actions as resources** — resets and Wake on LAN run on create and again whenever their `triggers` change; boot configurations survive the reboot that consumes them without planning a re-activation.
+- **🧭 Import everything** — by the natural key (`server_number`, IP, fingerprint, `<storagebox_id>/<name>`, transaction id).
+- **🎯 Only real changes** — Optional + Computed settings keep their live value when left out of the configuration.
+- **⏱️ Honours the limits** — empty collections (Robot's 404) read as empty lists, Storage Box writes keep Robot's 5-second spacing, failed logins and non-idempotent writes are never retried.
+- **🚀 OpenTofu & Terraform** — published as `kirchdev/hetznerrobot` on both registries.
+
+## 🗺️ Coverage
+
+<details>
+<summary>Resources & data sources</summary>
+
+- **Servers** — `hetznerrobot_server` (adopt + rename), `hetznerrobot_server_cancellation`; data sources `hetznerrobot_server(s)`, `hetznerrobot_server_cancellation`.
+- **IPs & subnets** — `hetznerrobot_ip`, `hetznerrobot_subnet` (traffic warnings), `hetznerrobot_ip_mac`, `hetznerrobot_subnet_mac`, `hetznerrobot_ip_cancellation`, `hetznerrobot_subnet_cancellation`; data sources `hetznerrobot_ip(s)`, `hetznerrobot_subnet(s)`, `hetznerrobot_subnet_mac`, `…_ip_cancellation`, `…_subnet_cancellation`.
+- **Failover & rDNS** — `hetznerrobot_failover`, `hetznerrobot_rdns`; data sources `hetznerrobot_failover(s)`, `hetznerrobot_rdns`, `hetznerrobot_rdns_entries`.
+- **Access & boot** — `hetznerrobot_ssh_key`, `hetznerrobot_boot_rescue`, `…_boot_linux`, `…_boot_vnc`, `…_boot_windows`, `hetznerrobot_server_reset`, `hetznerrobot_wake_on_lan`; data sources `hetznerrobot_ssh_key(s)`, `hetznerrobot_boot`, `hetznerrobot_reset(s)`.
+- **Firewall** — `hetznerrobot_firewall`, `hetznerrobot_firewall_template`; data sources `hetznerrobot_firewall`, `hetznerrobot_firewall_template(s)`.
+- **vSwitch** — `hetznerrobot_vswitch` (servers attached inline); data sources `hetznerrobot_vswitch(es)`.
+- **Storage Box** (only the inclusive BX10 — every other box lives in the Hetzner Console API) — `hetznerrobot_storagebox`, `…_storagebox_snapshot`, `…_storagebox_snapshot_plan`, `…_storagebox_subaccount`; data sources `hetznerrobot_storagebox(es)`, `…_storagebox_snapshots`, `…_storagebox_snapshot_plan`, `…_storagebox_subaccounts`.
+- **Ordering** — `hetznerrobot_server_order`, `hetznerrobot_server_market_order`, `hetznerrobot_server_addon_order`; data sources `hetznerrobot_server_product(s)`, `hetznerrobot_server_market_product(s)`, `hetznerrobot_server_addon_products`, `hetznerrobot_currency`.
+- **Traffic** — data source `hetznerrobot_traffic`.
+
+</details>
+
+<details>
+<summary>Deliberately left out</summary>
+
+- **`GET /boot/{n}/rescue/last`, `GET /boot/{n}/linux/last`** — they only repeat the password of the last activation, which the boot resource already holds.
+- **Order transaction listings** (`GET /order/*/transaction`) — a 30-day history, not infrastructure; each order resource reads its own transaction.
+- **`POST /storagebox/{id}/snapshot/{name}` (revert)** — a destructive one-off that rolls a whole box back; do it consciously in Robot.
+- **`GET /wol/{n}`** — only echoes the server's addresses; `hetznerrobot_server.wol` says whether Wake on LAN is available.
+- **Domain registration** — not part of the webservice.
+
+</details>
+
+## 🧪 Test status
+
+Every resource and data source runs through acceptance tests against an in-memory mock of the webservice in CI — create, update, import and destroy, including the asynchronous parts (firewall and vSwitch "in process", order transactions) and the error paths (rate limit, 404 collections, conflicts).
+
+| Area | Live-verified | Notes |
+| :-- | :-: | :-- |
+| Everything | ❌ **not yet** | built from the [official documentation](https://robot.hetzner.com/doc/webservice/en.html), mock-tested only |
+
+A live suite is ready and safe by design — it only creates throwaway entities (SSH keys, firewall templates, a vSwitch, a reverse DNS entry inside a server's IPv6 /64, an order with `test = true`) and never resets, reinstalls, cancels or reroutes anything:
+
+```bash
+TF_ACC=1 HETZNER_ROBOT_LIVE=1 HETZNER_ROBOT_USER=… HETZNER_ROBOT_PASSWORD=… \
+  HETZNER_ROBOT_LIVE_SERVER=<server number> HETZNER_ROBOT_LIVE_VSWITCH=1 HETZNER_ROBOT_LIVE_ORDER=1 \
+  go test ./internal/provider -run TestLive -v
+```
+
+Reports from runs against real accounts are very welcome.
+
+## 📚 Documentation
+
+Per-resource docs live under [`docs/`](docs/), generated from the schema with `make docs` (build + export schema + tfplugindocs).
 
 ## 🤝 Contributing
 
-PRs welcome. Conventional Commits required (enforced via commitlint). Husky runs the project's linters/formatters on `git commit`.
+PRs welcome. Conventional Commits required (enforced via commitlint). Husky runs the linters/formatters on `git commit`.
 
 > [!TIP]
-> Run `pnpm check:fix` before pushing — CI will catch what husky missed.
+> `make test` and `TF_ACC=1 go test ./...` (mock acceptance tests, needs `tofu` on PATH) run without an account.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow.
 

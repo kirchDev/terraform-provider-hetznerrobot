@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 
-# A repo that publishes something adds its own job here, gated on
-# `needs.release-please.outputs.release-created`.
+# The Terraform Registry reads this repo's tags, and GoReleaser uploads the
+# signed artifacts onto the release release-please cuts.
 name: Release Please
 
 on:
@@ -15,6 +15,18 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    uses: kirchDev/workflows/.github/workflows/_release-please.yml@94cbcbd676b989ac6c6327055a240132f5cd76a5 # v0.8.0
+    uses: kirchDev/workflows/.github/workflows/_release-please.yml@ea3a3c15385340fe1f9751e0afefaef32970aad7 # v0.12.0
+    secrets:
+      BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
+
+  goreleaser:
+    name: GoReleaser
+    needs: release-please
+    if: needs.release-please.outputs.release-created == 'true'
+    permissions:
+      contents: write
+    uses: kirchDev/workflows/.github/workflows/_publish-goreleaser.yml@ea3a3c15385340fe1f9751e0afefaef32970aad7 # v0.12.0
+    with:
+      tag-name: ${{ needs.release-please.outputs.tag-name }}
     secrets:
       BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}

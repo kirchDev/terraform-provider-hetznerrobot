@@ -16,40 +16,106 @@ Retyping a change is exactly how the two drift; one reflowed line or reworded cl
 
 ## What this repo is
 
-`scaffold` is a **GitHub template repository**, not an application. It ships the meta layer (lint, format, commit hooks, CI, CodeQL, Dependabot, release-please, issue/PR templates, standard meta docs) that every new kirchDev repo should start with. There is no application code — the project code can be anything (PHP, Go, Rust, Vue, shell). Only the meta layer lives here.
+A first-party **OpenTofu / Terraform provider for [Hetzner Robot](https://robot.hetzner.com)** — the dedicated-server side of Hetzner — owned by kirchDev. It covers the complete [Robot webservice](https://robot.hetzner.com/doc/webservice/en.html): servers, IPs, subnets, failover, reverse DNS, SSH keys, boot configurations, resets, firewalls and templates, vSwitches, the inclusive Storage Box, orders, products and traffic. Hetzner Cloud (and every Storage Box other than the inclusive BX10) belongs to the official `hcloud` provider, not here.
 
-Implication: when changing files, ask "does this default make sense for _every_ future repo created from this template?" — not just for one project type.
+- **Provider type (HCL):** `hetznerrobot` → `provider "hetznerrobot" {}`
+- **OpenTofu registry address:** `kirchdev/hetznerrobot`
+- **Go module:** `github.com/kirchDev/terraform-provider-hetznerrobot`
+- **SDK:** `terraform-plugin-framework` (NOT the legacy SDKv2)
+
+The repo name format `NAMESPACE/terraform-provider-NAME` is **mandatory** for the OpenTofu/Terraform registry — it's not a style choice.
+
+**Deliberately left out:** `GET /boot/{n}/rescue/last` and `/linux/last` (they only repeat a password the boot resource already holds), the order transaction listings (a 30-day history, not infrastructure), the Storage Box snapshot revert (a destructive one-off), `GET /wol/{n}` (only echoes addresses). Don't add them without a conversation.
+
+## Current state
+
+27 resources and 36 data sources, every documented endpoint mapped. **Nothing is live-verified yet** — no Robot account was available while building it. Everything follows the official documentation and runs through acceptance tests against `mock_*_test.go`, an in-memory model of the webservice; the live suite (`live_test.go`) is ready and its configurations also run against the mock (`TestAccMockLiveSuite`). When a live run contradicts the docs: teach the mock first, then fix the provider, then record the finding below and in the README's _Test status_.
+
+Two layers coexist:
+
+- **Node meta layer** (from the `scaffold` template): pnpm + oxlint + oxfmt + husky + commitlint + release-please + CI/CodeQL/Dependabot + issue/PR templates. Gates config/docs (JSON/YAML/MD).
+- **Go provider**: `internal/client/` (the webservice client) and `internal/provider/` (resources, data sources, tests).
+
+## API shape (per the documentation, not yet live-verified)
+
+- Base `https://robot-ws.your-server.de`, **HTTP Basic auth** with a webservice user. **Three failed logins block the calling IP for ten minutes** — the client never retries a 401.
+- Requests are **form-encoded** (`key[]=a&key[]=b`, firewall rules as `rules[input][0][name]=…`), also the bodies of `DELETE /vswitch/{id}` and `DELETE /vswitch/{id}/server`. Responses wrap the entity in its name (`{"server": {…}}`, lists `[{"server": {…}}]`); **vSwitch answers are bare objects**. `client.GetObject` / `GetList` / `SendObject` unwrap.
+- **An empty collection is a 404**, not `[]` — `NOT_FOUND`, or the collection's own code for top-level lists (`SERVER_NOT_FOUND` on `/server`). `GetList` maps that to an empty slice; below an entity only `NOT_FOUND` counts as empty (a missing parent stays an error).
+- Errors are `{"error": {"status", "code", "message"}}` plus `missing`/`invalid` for `INVALID_INPUT`. **The rate limit is a 403 `RATE_LIMIT_EXCEEDED`** with hourly windows per endpoint — never retried. Retries: transport errors and 5xx on GET, 503 (maintenance) on writes — **except `/order/*`**, where a duplicate would buy twice.
+- Types are inconsistent across the doc (`server_number` Integer vs String, a subnet `mask` 29 vs `"29"`, `cancellation_date` vs `cancellation-date`, boot `os`/`dist`/`lang` an array while inactive and a string once active). `client.FlexInt`/`FlexString`/`FlexFloat`/`StringOrList` accept every spelling.
+- **Storage Box endpoints only work for the inclusive BX10**; every write there is limited to **1 per 5 seconds** — the client paces non-GET `/storagebox*` calls.
+- Firewall and vSwitch changes are asynchronous (`in process`); the resources wait (`waitFor`, `pollInterval`). Orders wait for their transaction a minute apart (`orderPollInterval`) because transaction reads are capped at 500 per hour.
+
+## Semantics decisions
+
+- **Adopt, don't create, what Robot can't create.** `hetznerrobot_server`, `_ip`, `_subnet`, `_storagebox` adopt by natural key; destroying them only forgets. Cancelling is its own resource (`*_cancellation`); a cancellation whose entity is gone stays in state as the record of it.
+- **Orders never order twice.** State is saved the moment Robot accepts the POST; a timeout or a `cancelled` transaction is a warning, never an error (an error would taint and re-order). Optional order arguments only replace when a set value changes to another set value (`orderReplaceOnChange`); import fails unless the transaction is still readable (30 days). Destroy forgets, with a warning.
+- **Boot configurations survive their reboot.** Robot clears `active` once the server boots the config; Read only refreshes `active` and never removes or re-plans the activation.
+- **Firewall POSTs replace the whole configuration.** Create reads the live firewall first so unlisted rules, flags and status are kept; `status` defaults to `active` only when rules or a template are configured.
+- **Resets and Wake on LAN are one-shot resources** with `triggers` (like `terraform_data`); import sets the keys without an API call.
+- `replaceOnSetChange` (helpers) is the pattern for arguments an import cannot read back: setting or unsetting them is an in-place no-op, only a real change replaces.
 
 ## Commands
 
-| Command             | What it does                                               |
-| :------------------ | :--------------------------------------------------------- |
-| `pnpm install`      | Install deps and wire husky hooks via the `prepare` script |
-| `pnpm lint`         | `oxlint . --deny-warnings`                                 |
-| `pnpm format`       | `oxfmt --check .` (note: `format` is the check, not fix)   |
-| `pnpm typecheck`    | `tsc --noEmit` over the meta scripts                       |
-| `pnpm check`        | Runs `lint` + `format` + `typecheck` + `check:policy` — the CI gate |
-| `pnpm check:policy` | Proves the two agent policy files ban the same commands    |
-| `pnpm lint:fix`     | Auto-fix lint                                              |
-| `pnpm format:fix`   | Auto-fix format                                            |
-| `pnpm check:fix`    | Auto-fix lint + format                                     |
-| `pnpm skills:update`| Update project-scoped agent skills via the skills.sh CLI   |
-| `pnpm taze`         | Interactive dependency upgrade check                       |
-| `pnpm taze:w`       | Write upgrade results                                      |
+Go (via `GNUmakefile`; needs **Go ≥ 1.26**). `go.mod` pins `toolchain go1.26.9`: `setup-go` in CI and the release reads that line. Raise it when a newer Go patch fixes the standard library; keep it at a version the local `golangci-lint` was built with or newer.
 
-There is no test suite — this is config-only. CI runs `pnpm lint`, `pnpm format`, `pnpm typecheck` and `pnpm check:policy` on PR.
+| Command        | What it does                                                                     |
+| :------------- | :------------------------------------------------------------------------------- |
+| `make build`   | `go build -o terraform-provider-hetznerrobot`                                    |
+| `make tidy`    | `go mod tidy`                                                                    |
+| `make fmt`     | `gofmt -s -w .`                                                                  |
+| `make vet`     | `go vet ./...`                                                                   |
+| `make lint`    | `golangci-lint run`                                                              |
+| `make docs`    | render `docs/` from the schema (build + export + tfplugindocs)                   |
+| `make test`    | `go test ./...` — client unit tests, examples coverage                           |
+| `make testacc` | `TF_ACC=1 go test ./...` — mock acceptance tests; needs a TF binary, no account  |
+| `make vuln`    | `govulncheck ./...` — reachable vulnerabilities, standard library included       |
 
-## Architecture / conventions
+**Live tests** (real webservice; only throwaway entities — never a reset, reinstall, cancellation, reroute or real order):
 
-- **Node 24, pnpm 11.** Pinned via `.nvmrc`, `engines`, and `packageManager`. `pnpm-workspace.yaml` enforces `minimumReleaseAge=4320` (3-day cooldown), isolated node-linker. Don't loosen these without reason. Package-manager enforcement carries no key on purpose: pnpm 11 replaced `packageManagerStrict`/`packageManagerStrictVersion` with `pmOnFail`, whose default `download` already errors on a foreign package manager and fetches the pinned pnpm version — every other value only weakens it, so leave it unset (the rationale sits as a comment in the file).
-- **oxc, not eslint/prettier.** Linting via `oxlint`, formatting via `oxfmt`. Configs live in `.oxlintrc.json` / `.oxfmtrc.json`. `oxlint` uses `unicorn` + `oxc` plugins; rules deliberately minimal.
-- **TypeScript, no build step.** The meta scripts and the three tool configs are `.ts` — Node 24 strips types natively, so `scripts/check-policy-parity.ts`, `commitlint.config.ts`, `lint-staged.config.ts` and `taze.config.ts` stay directly executable and each tool loads its own `.ts` config unaided. `tsconfig.json` is `noEmit` + `strict` + `erasableSyntaxOnly`, so only strippable syntax (no enums, no parameter properties) can be written; `pnpm typecheck` is the gate. TypeScript is a devDependency of the template's meta layer only — a downstream PHP, Go or Rust repo inherits it for that and nothing else, and drops it by deleting `tsconfig.json`, the `typecheck` script and the four `.ts` files' types.
-- **Husky hooks** (`.husky/pre-commit`, `.husky/commit-msg`) run `lint-staged` and `commitlint`. `lint-staged.config.ts` excludes `README.md`, `CLAUDE.md`, and `AGENTS.md` (free-form prose) and `pnpm-lock.yaml`. `oxlint --fix --deny-warnings` then `oxfmt` on JS/TS; `oxfmt` only on JSON/YAML/MD.
-- **Conventional Commits enforced** via `@commitlint/config-conventional`. Don't `--no-verify` unless explicitly asked.
-- **release-please is included** (unlike many templates that omit it). Files: `release-please-config.json`, `.release-please-manifest.json`, `.github/workflows/release-please.yml`. Config uses `release-type: simple` (language-agnostic), `include-v-in-tag: true`. Downstream repos start at `0.0.0` and reset via the steps in README → _Resetting release-please_.
-- **Workflows** use `actions/checkout@v6`, `actions/setup-node@v6`, `pnpm/action-setup@v6`, `github/codeql-action/{init,analyze}@v4`. Keep these pinned to major versions; Dependabot bumps them monthly.
-- **CodeQL** scans `actions` + `javascript-typescript` with `security-extended,security-and-quality` queries, gated by path filters so non-code changes don't trigger it.
-- **Dependabot** groups all minor/patch updates per ecosystem into a single PR (`npm-minor-patch`, `actions-minor-patch`). Majors come as separate PRs.
+```bash
+TF_ACC=1 HETZNER_ROBOT_LIVE=1 HETZNER_ROBOT_USER=… HETZNER_ROBOT_PASSWORD=… \
+  HETZNER_ROBOT_LIVE_SERVER=<n> HETZNER_ROBOT_LIVE_VSWITCH=1 HETZNER_ROBOT_LIVE_ORDER=1 \
+  go test ./internal/provider -run TestLive -v
+```
+
+Node meta layer: `pnpm install` (wires husky hooks), `pnpm check` / `pnpm check:fix`. CI (`.github/workflows/ci.yml`) runs the central **Go job** (build·vet·gofmt·golangci-lint·test + `TF_ACC` mock acceptance tests) and the **check job** (`pnpm check`).
+
+> [!NOTE]
+> Generated files are excluded from oxfmt via `.prettierignore` (`docs/` from tfplugindocs, `CHANGELOG.md` from release-please). Don't reformat them — the next generation undoes it.
+
+## Patterns & gotchas
+
+- One file per area (resource + its data sources), `api*` wire structs, `*Model` framework structs; constructors `New{Camel}Resource` / `New{Camel}DataSource`; TypeName `hetznerrobot_{snake}`; everything registered in `provider.go`.
+- No synthetic `id` attributes: resources are keyed by their natural key (`server_number`, `ip`, `fingerprint`, `transaction_id`, …); tests pass `ImportStateVerifyIdentifierAttribute`.
+- **Optional + Computed + `UseStateForUnknown`** (`optStr`/`optInt`/`optBool`) on settings; values Robot changes on its own are plain `computed*` (no UseStateForUnknown), values fixed for the entity's lifetime `stable*`.
+- **The mock** (`mock_test.go`) is a route table: each area registers its endpoints and fixtures from an `init()` in its own `mock_*_test.go`. Shared fixtures (servers 321/421, IPs, subnets, failover, Storage Box) live in `mock_fixtures_test.go`. Query parameters only count for GETs, so a write that puts its fields in the URL fails as it would at Robot.
+- `examples_test.go` fails when a type has no example or an example no type; `mock_coverage_test.go` fails when a type appears in no acceptance-test configuration.
+
+### Manual smoke test (loads the binary in OpenTofu)
+
+```bash
+make build
+cat > /tmp/hetznerrobot.tfrc <<EOF
+provider_installation {
+  dev_overrides { "kirchdev/hetznerrobot" = "$(pwd)" }
+  direct {}
+}
+EOF
+TF_CLI_CONFIG_FILE=/tmp/hetznerrobot.tfrc tofu -chdir=path/to/example plan
+```
+
+## Release & publishing
+
+- **release-please** (`.github/workflows/release-please.yml`, `release-type: go`) owns versioning + CHANGELOG + the tag + GitHub release.
+- When it cuts a release, the **GoReleaser** job in the same workflow builds the cross-platform archives, **GPG-signs** the checksums and **appends** them to the release (`release.mode: append`).
+- The registry consumes the per-platform zips + `SHA256SUMS` + detached `.sig` + `manifest.json` (protocol `6.0`, from `terraform-registry-manifest.json`).
+- The GPG key in `KEYS` is the **same** key the sibling providers use — already registered, nothing to rotate.
+
+## Conventions
+
+- **Conventional Commits enforced** via commitlint on `git commit`. Don't `--no-verify` unless explicitly asked.
+- Siblings **`../terraform-provider-tcpshield`**, **`../terraform-provider-laravelforge`**, **`../terraform-provider-discord`** and **`../terraform-provider-linear`** are the reference implementations of these provider conventions — check them when unsure.
 
 ## AI & skills
 
@@ -118,26 +184,10 @@ rm .github/workflows/promotion-pr.yml
 # .tituskirch-skills.json   — set `pr.base` to "main"
 ```
 
-Nothing is vendored for this. A variant worth shipping as files is one that *adds* something — content that would otherwise be lost. A variant that only deletes has nothing to preserve, so it stays documented, exactly like _Public vs private repos_ below.
+Nothing is vendored for this. A variant worth shipping as files is one that *adds* something — content that would otherwise be lost. A variant that only deletes has nothing to preserve, so it stays documented.
 
 `ci.yml` and `codeql.yml` list both `main` and `dev` in their `on: branches:` filters and neither edit touches them. A filter naming a branch that doesn't exist is a no-op, so it costs a main-only repo nothing — and without `dev` in `ci.yml`, PRs into `dev` (Dependabot's included) would run no CI at all.
 
-Variants that are *purely* deletions — see _Public vs private repos_ below — stay documented rather than vendored; only this one earns the folder.
-
-## Public vs private repos
-
-Some meta defaults only make sense for one visibility. When spinning up a repo from this template, adjust for its visibility:
-
-- **CodeQL / code scanning** (`.github/workflows/codeql.yml`) depends on GitHub Advanced Security. It's free on **public** repos; on a **private** repo without a GHAS license it won't run — delete `codeql.yml` (and the CodeQL note above) rather than leave a dead workflow. The same goes for other GHAS-gated features (secret scanning, etc.). Dependabot version updates work on both.
-- **License.** A **public** repo ships MIT: keep `LICENSE` and the `[MIT](LICENSE) © …` README footer. A **private** repo is proprietary: remove/replace `LICENSE`, drop the MIT footer, and set `package.json` to `"license": "UNLICENSED"` (keep `"private": true`).
-- **Discord forum links.** `.github/ISSUE_TEMPLATE/config.yml` points questions, ideas and possible bugs at the repo's Discord forum (each open-source repo gets one, provisioned from the `infrastructure` repo's OpenTofu). Confirmed bugs and features stay as the GitHub issue forms. A **private** repo has no forum — drop the `contact_links` block; if you still want an in-repo Q&A path, restore a simple `question.yml`.
-
 ## House style for READMEs and meta files
 
-`/write-readme` skill encodes the canonical structure. Key rules: hero block wrapped in `<div align="center">`, prescribed section emojis (✨ Features, 🚀 Setup, 🤝 Contributing, 🛣️ Versioning, 📄 License), license footer always reads `[MIT](LICENSE) © [Titus Kirch](https://github.com/TitusKirch/) / [IT-Dienstleistungen Titus Kirch](https://kirch.dev)`. Use GitHub callouts (`> [!TIP]`, `> [!IMPORTANT]`), never plain blockquotes.
-
-## When editing this template
-
-- Every file referencing `TitusKirch/scaffold` is a placeholder that downstream users will replace. Keep the references consistent so a single `grep -rn "TitusKirch/scaffold"` catches them all.
-- `forgemap` (sibling repo at `../forgemap`) is the de-facto reference implementation of these conventions. When unsure about a config choice, check what forgemap does.
-- The template's own `package.json` is `"private": true` and `"name": "scaffold"` — not published anywhere.
+`/write-readme` skill encodes the canonical structure. Key rules: hero block wrapped in `<div align="center">`, prescribed section emojis (✨ 📦 🗺️ 📚 🤝 🛣️ 📄), license footer always reads `[MIT](LICENSE) © [Titus Kirch](https://github.com/TitusKirch/) / [IT-Dienstleistungen Titus Kirch](https://kirch.dev)`. Use GitHub callouts (`> [!TIP]`, `> [!IMPORTANT]`), never plain blockquotes.

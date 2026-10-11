@@ -1,5 +1,5 @@
 # region gitignore-sync
-# stacks: core, git, node, vscode, intellij, macos, windows, linux, agents
+# stacks: core, git, node, go, vscode, intellij, macos, windows, linux, tofu, agents
 # ─────────────────────────────────────────
 
 # region core@v1
@@ -29,6 +29,13 @@ coverage
 .eslintcache
 .npm
 *.tgz
+# endregion
+
+# region go@v1
+*.exe
+*.test
+*.out
+*.prof
 # endregion
 
 # region vscode@v1
@@ -85,9 +92,31 @@ $RECYCLE.BIN/
 .nfs*
 # endregion
 
+# region tofu@v1
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+override.tf
+override.tf.json
+.terraformrc
+terraform.rc
+crash.log
+crash.*.log
+# endregion
+
 # region agents@v1
 .claude/settings.local.json
 .claude/worktrees/
 # endregion
 
 # endregion
+
+# Go
+/terraform-provider-hetznerrobot
+/dist/
+
+# Local secrets / live-test credentials (HETZNER_ROBOT_USER / HETZNER_ROBOT_PASSWORD)
+.env
+.env.*

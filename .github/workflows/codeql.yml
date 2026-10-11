@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 
-# A repo that adds a compiled language names it in `languages` — the body sets
-# the build mode per language, so Go needs no second workflow.
+# `go` is in here deliberately — the provider handles account-wide Robot webservice credentials,
+# so it is worth scanning. The body switches Go to autobuild on its own.
 name: CodeQL
 
 on:
@@ -28,4 +28,6 @@ jobs:
       packages: read
       actions: read
       contents: read
-    uses: kirchDev/workflows/.github/workflows/_codeql.yml@94cbcbd676b989ac6c6327055a240132f5cd76a5 # v0.8.0
+    uses: kirchDev/workflows/.github/workflows/_codeql.yml@ea3a3c15385340fe1f9751e0afefaef32970aad7 # v0.12.0
+    with:
+      languages: '["actions", "go", "javascript-typescript"]'

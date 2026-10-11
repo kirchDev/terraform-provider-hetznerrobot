@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
+# The checks come from this repo's own `check` script in package.json — adding
+# one there is enough, no workflow change needed.
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - dev
+    types: [opened, synchronize, reopened, ready_for_review]
+
+# NO `paths-ignore`, AND THAT IS THE POINT OF THE GATE. A change touching only
+# prose cannot break a lint — but a workflow that does not TRIGGER reports no
+# check at all, and a required check that never reports does not pass the merge,
+# it blocks it forever. `CI / Gate` is meant to be a required check, so this
+# workflow has to run on every pull request, including a README-only one.
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: CI
+    uses: kirchDev/workflows/.github/workflows/_ci-check.yml@94cbcbd676b989ac6c6327055a240132f5cd76a5 # v0.8.0

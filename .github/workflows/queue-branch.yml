@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
+# Cuts the queue branch a worktree drain's pull requests are grouped behind. The
+# body reads the integration branch off the pull request's own base, so the
+# `branches:` filter below is the only place it is named.
+name: Queue Branch
+
+on:
+  pull_request:
+    branches:
+      - dev
+    # `opened` only. A retarget is what this workflow DOES, so reacting to
+    # `edited` would have it answer its own edit; and a push to an already
+    # grouped PR needs nothing from here.
+    types: [opened]
+
+jobs:
+  queue-branch:
+    name: Queue Branch
+    permissions:
+      contents: read
+      pull-requests: write
+    uses: kirchDev/workflows/.github/workflows/_queue-branch.yml@94cbcbd676b989ac6c6327055a240132f5cd76a5 # v0.8.0
+    secrets:
+      BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}

@@ -1,0 +1,31 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
+# A repo that adds a compiled language names it in `languages` — the body sets
+# the build mode per language, so Go needs no second workflow.
+name: CodeQL
+
+on:
+  # PUSH ON THE RELEASE BRANCH ONLY. A push to an integration branch always has
+  # a pull request open on it, and that PR run scans the same tree — listing
+  # `dev` here as well ran the analysis twice for one result.
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main, dev]
+    # `ready_for_review` is required once `dev` leaves the push trigger: a pull
+    # request opened as a draft analyses once, and without this type undrafting
+    # starts nothing — leaving a required code-scanning result that never comes.
+    types: [opened, synchronize, reopened, ready_for_review]
+  schedule:
+    - cron: '34 23 * * 0'
+  workflow_dispatch:
+
+jobs:
+  codeql:
+    name: CodeQL
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+    uses: kirchDev/workflows/.github/workflows/_codeql.yml@94cbcbd676b989ac6c6327055a240132f5cd76a5 # v0.8.0

@@ -26,6 +26,26 @@ updates:
           - 'minor'
           - 'patch'
 
+  - package-ecosystem: 'gomod'
+    commit-message:
+      prefix: 'fix(deps)'
+    directory: '/'
+    target-branch: 'dev'
+    schedule:
+      interval: 'weekly'
+    cooldown:
+      default-days: 3
+    labels:
+      - 'dependencies'
+      - 'stack: go'
+    groups:
+      gomod-minor-patch:
+        patterns:
+          - '*'
+        update-types:
+          - 'minor'
+          - 'patch'
+
   - package-ecosystem: 'github-actions'
     commit-message:
       prefix: 'chore(deps)'
@@ -71,6 +91,17 @@ updates:
     labels:
       - 'dependencies'
       - 'stack: javascript'
+
+  - package-ecosystem: 'gomod'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    open-pull-requests-limit: 0
+    commit-message:
+      prefix: 'fix(deps)'
+    labels:
+      - 'dependencies'
+      - 'stack: go'
 
   - package-ecosystem: 'github-actions'
     directory: '/'

@@ -120,7 +120,7 @@ prefix_rule(
     pattern = ["gh", ["repo", "release", "secret"], "delete"],
     decision = "forbidden",
     justification = "Deletes remote resources; a repo takes issues and PRs with it",
-    match = ["gh repo delete TitusKirch/scaffold", "gh release delete v1.0.0"],
+    match = ["gh repo delete kirchDev/terraform-provider-hetznerrobot", "gh release delete v1.0.0"],
     not_match = ["gh repo view", "gh release list"],
 )
 

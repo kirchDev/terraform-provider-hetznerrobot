@@ -165,7 +165,8 @@ func (r *ipResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "A single IPv4 address of a server, adopted to manage its traffic warnings. IPs cannot be " +
 			"created here (order one with `hetznerrobot_server_addon_order`). Destroying the resource only forgets the IP; " +
-			"cancel it with `hetznerrobot_ip_cancellation`.",
+			"cancel it with `hetznerrobot_ip_cancellation`. A server's IPv6 addresses are a /64 subnet: manage their " +
+			"traffic warnings with `hetznerrobot_subnet`.",
 		Attributes: mergeAttrs(trafficAttrs(), map[string]schema.Attribute{
 			"ip":            reqStrNew("The IP address."),
 			"gateway":       stableStr("Gateway."),
@@ -365,7 +366,7 @@ func (d *ipDataSource) Metadata(_ context.Context, req datasource.MetadataReques
 
 func (d *ipDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = dschema.Schema{
-		MarkdownDescription: "Reads one single IP address of the account.",
+		MarkdownDescription: "Reads one single IPv4 address of the account. IPv6 addresses are subnets — see `hetznerrobot_subnet`.",
 		Attributes: with(ipBaseDSAttrs(), map[string]dschema.Attribute{
 			"ip":        dsRequiredStr("The IP address."),
 			"gateway":   dsStr("Gateway."),
@@ -406,7 +407,7 @@ func (d *ipsDataSource) Metadata(_ context.Context, req datasource.MetadataReque
 
 func (d *ipsDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = dschema.Schema{
-		MarkdownDescription: "Lists the single IP addresses of the account, or of one server.",
+		MarkdownDescription: "Lists the single IPv4 addresses of the account, or of one server. IPv6 addresses are subnets — see `hetznerrobot_subnets`.",
 		Attributes: map[string]dschema.Attribute{
 			"server_ip": dsOptionalStr("Main IP address of a server; only its IPs are listed."),
 			"ips":       dsList("The IP addresses.", ipBaseDSAttrs()),

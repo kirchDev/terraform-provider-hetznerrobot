@@ -3,12 +3,12 @@
 page_title: "hetznerrobot_ip Data Source - hetznerrobot"
 subcategory: ""
 description: |-
-  Reads one single IP address of the account.
+  Reads one single IPv4 address of the account. IPv6 addresses are subnets — see hetznerrobot_subnet.
 ---
 
 # hetznerrobot_ip (Data Source)
 
-Reads one single IP address of the account.
+Reads one single IPv4 address of the account. IPv6 addresses are subnets — see `hetznerrobot_subnet`.
 
 ## Example Usage
 

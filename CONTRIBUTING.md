@@ -17,7 +17,7 @@ This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.
 
 Requirements:
 
-- **Go 1.26+** (the provider; `go.mod` pins `toolchain go1.26.9`, which Go fetches on its own), `golangci-lint` and `govulncheck` (`go install golang.org/x/vuln/cmd/govulncheck@latest`)
+- **Go 1.27+** (the provider; `go.mod` pins `toolchain go1.27.2`, which Go fetches on its own), `golangci-lint` and `govulncheck` (`go install golang.org/x/vuln/cmd/govulncheck@latest`)
 - Node **24+** and **pnpm 12** (the meta layer: lint/format/hooks/release tooling)
 - `git`; OpenTofu or Terraform to load the built binary
 - A Robot webservice user (`HETZNER_ROBOT_USER` / `HETZNER_ROBOT_PASSWORD`) if you want to run the live tests — see the README's _Test status_

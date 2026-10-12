@@ -47,7 +47,7 @@ output "extra_ip" {
 
 - `gateway` (String) Routing target of a `subnet_ipv4` addon: one of the server's additional IPv4 addresses. Defaults to the server's main IP.
 - `reason` (String) RIPE reason — why the addresses are needed. Robot requires it for the product types `ip_ipv4`, `subnet_ipv4` and `failover_subnet_ipv4`.
-- `test` (Boolean) When true, Robot validates the order but does not process it — nothing is ordered or billed, and no server number is ever assigned.
+- `test` (Boolean) When true, Robot validates the order but does not process it — nothing is ordered or billed, and no server number is ever assigned. **This is the documented behaviour; the provider's ordering has not been run against the live API yet.** Send one test order by hand first and check in Robot that nothing was ordered.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only

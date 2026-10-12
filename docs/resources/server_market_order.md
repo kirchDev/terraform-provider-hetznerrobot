@@ -63,7 +63,7 @@ resource "hetznerrobot_server_market_order" "storage" {
 - `dist` (String) Distribution to preinstall, e.g. `Rescue system` or a name from the product's `dists`. Changing a set value orders a new server.
 - `lang` (String) Language of the preinstalled distribution, e.g. `en`.
 - `password` (String, Sensitive) Root password. Set this or `authorized_keys`; never read back.
-- `test` (Boolean) When true, Robot validates the order but does not process it — nothing is ordered or billed, and no server number is ever assigned.
+- `test` (Boolean) When true, Robot validates the order but does not process it — nothing is ordered or billed, and no server number is ever assigned. **This is the documented behaviour; the provider's ordering has not been run against the live API yet.** Send one test order by hand first and check in Robot that nothing was ordered.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only

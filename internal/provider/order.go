@@ -132,7 +132,8 @@ func orderOptSet(desc string) schema.SetAttribute {
 func orderTestAttr() schema.BoolAttribute {
 	return schema.BoolAttribute{
 		MarkdownDescription: "When true, Robot validates the order but does not process it — nothing is ordered or billed, " +
-			"and no server number is ever assigned.",
+			"and no server number is ever assigned. **This is the documented behaviour; the provider's ordering has not been " +
+			"run against the live API yet.** Send one test order by hand first and check in Robot that nothing was ordered.",
 		Optional:      true,
 		PlanModifiers: []planmodifier.Bool{orderReplaceOnChange{}},
 	}

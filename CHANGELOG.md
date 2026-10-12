@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/kirchDev/terraform-provider-hetznerrobot/compare/v0.1.0...v0.1.1) (2026-10-12)
+
+
+### Bug Fixes
+
+* **deps:** move to go 1.27 ([0d87b0a](https://github.com/kirchDev/terraform-provider-hetznerrobot/commit/0d87b0ab7a9954f2550c0dd371083fdba849cae5))
+
 ## 0.1.0 (2026-10-12)
 
 

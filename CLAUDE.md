@@ -29,20 +29,27 @@ The repo name format `NAMESPACE/terraform-provider-NAME` is **mandatory** for th
 
 ## Current state
 
-27 resources and 36 data sources, every documented endpoint mapped. **Nothing is live-verified yet** — no Robot account was available while building it. Everything follows the official documentation and runs through acceptance tests against `mock_*_test.go`, an in-memory model of the webservice; the live suite (`live_test.go`) is ready and its configurations also run against the mock (`TestAccMockLiveSuite`). When a live run contradicts the docs: teach the mock first, then fix the provider, then record the finding below and in the README's _Test status_.
+27 resources and 36 data sources, every documented endpoint mapped. Verification differs by area — the README's _Test status_ table is the user-facing version of this list, keep the two in step:
+
+- **Live-verified (2026-10)** on an account with one auction server — `TestLive*` in `live_test.go`: every account-wide data source; `hetznerrobot_server`, `_ip`, `_subnet` (adopt, change, restore, import); `_rdns`, `_ssh_key`, `_firewall_template`, `_vswitch` (full lifecycle); `_firewall` (adopt keeps the rules, replace, import — a Robot firewall apply takes about a minute); `_boot_rescue` + `_server_reset` (hardware reset into the Rescue System; Robot cleared `active` about 30 s later and the plan stayed empty); `_wake_on_lan`; the boot, reset, firewall, traffic and cancellation-info data sources.
+- **Mock-only, by choice** — `_boot_linux`/`_vnc`/`_windows` and every `*_cancellation` resource (reinstall / cancel), and **all ordering**: the three order resources, the product data sources and `_currency`. Ordering stays disabled for the test user on purpose; `test = true` is documented behaviour, never observed — the README carries a caution about it.
+- **Mock-only, nothing to test on** — `_failover`, `_ip_mac`/`_subnet_mac` (`MAC_NOT_AVAILABLE` for the auction server's addresses), the Storage Box resources.
+
+Everything else follows the documentation and runs through acceptance tests against `mock_*_test.go`, an in-memory model of the webservice; the live configurations also run against the mock (`TestAccMockLiveSuite`). When a live run contradicts the docs: teach the mock first, then fix the provider, then record the finding below and in the README.
 
 Two layers coexist:
 
 - **Node meta layer** (from the `scaffold` template): pnpm + oxlint + oxfmt + husky + commitlint + release-please + CI/CodeQL/Dependabot + issue/PR templates. Gates config/docs (JSON/YAML/MD).
 - **Go provider**: `internal/client/` (the webservice client) and `internal/provider/` (resources, data sources, tests).
 
-## API shape (per the documentation, not yet live-verified)
+## API shape (documentation, checked live where noted)
 
 - Base `https://robot-ws.your-server.de`, **HTTP Basic auth** with a webservice user. **Three failed logins block the calling IP for ten minutes** — the client never retries a 401.
 - Requests are **form-encoded** (`key[]=a&key[]=b`, firewall rules as `rules[input][0][name]=…`), also the bodies of `DELETE /vswitch/{id}` and `DELETE /vswitch/{id}/server`. Responses wrap the entity in its name (`{"server": {…}}`, lists `[{"server": {…}}]`); **vSwitch answers are bare objects**. `client.GetObject` / `GetList` / `SendObject` unwrap.
 - **An empty collection is a 404**, not `[]` — `NOT_FOUND`, or the collection's own code for top-level lists (`SERVER_NOT_FOUND` on `/server`). `GetList` maps that to an empty slice; below an entity only `NOT_FOUND` counts as empty (a missing parent stays an error).
 - Errors are `{"error": {"status", "code", "message"}}` plus `missing`/`invalid` for `INVALID_INPUT`. **The rate limit is a 403 `RATE_LIMIT_EXCEEDED`** with hourly windows per endpoint — never retried. Retries: transport errors and 5xx on GET, 503 (maintenance) on writes — **except `/order/*`**, where a duplicate would buy twice.
 - Types are inconsistent across the doc (`server_number` Integer vs String, a subnet `mask` 29 vs `"29"`, `cancellation_date` vs `cancellation-date`, boot `os`/`dist`/`lang` an array while inactive and a string once active). `client.FlexInt`/`FlexString`/`FlexFloat`/`StringOrList` accept every spelling.
+- **Live findings (2026-10):** `/order/*` answers **401 `UNAUTHORIZED`** — not the documented 412 — while ordering is not enabled for the webservice user (whether that counts towards the IP block is unknown, so the live suite only touches `/order` on opt-in). An empty `/vswitch` is `200 []`, not a 404, and a vSwitch cancelled `now` disappears from the list at once. Reading the cancellation of an **IPv6 subnet** is a 409 `CONFLICT` ("cancellation of IPv6 subnet is not possible"); the main IPv4 address answers it normally. Responses carry undocumented extras (`vswitch_id` on subnets, `arch` and `boot_time` on boot configs) — the decoders ignore them.
 - **Storage Box endpoints only work for the inclusive BX10**; every write there is limited to **1 per 5 seconds** — the client paces non-GET `/storagebox*` calls.
 - Firewall and vSwitch changes are asynchronous (`in process`); the resources wait (`waitFor`, `pollInterval`). Orders wait for their transaction a minute apart (`orderPollInterval`) because transaction reads are capped at 500 per hour.
 
@@ -71,11 +78,12 @@ Go (via `GNUmakefile`; needs **Go ≥ 1.26**). `go.mod` pins `toolchain go1.26.9
 | `make testacc` | `TF_ACC=1 go test ./...` — mock acceptance tests; needs a TF binary, no account  |
 | `make vuln`    | `govulncheck ./...` — reachable vulnerabilities, standard library included       |
 
-**Live tests** (real webservice; only throwaway entities — never a reset, reinstall, cancellation, reroute or real order):
+**Live tests** (real webservice; throwaway entities and restored settings; `HETZNER_ROBOT_LIVE_DISRUPT` adds the firewall rewrite and the resets — only for an idle server; never a reinstall, cancellation, reroute or order):
 
 ```bash
 TF_ACC=1 HETZNER_ROBOT_LIVE=1 HETZNER_ROBOT_USER=… HETZNER_ROBOT_PASSWORD=… \
-  HETZNER_ROBOT_LIVE_SERVER=<n> HETZNER_ROBOT_LIVE_VSWITCH=1 HETZNER_ROBOT_LIVE_ORDER=1 \
+  HETZNER_ROBOT_LIVE_SERVER=<n> HETZNER_ROBOT_LIVE_WRITE=1 HETZNER_ROBOT_LIVE_VSWITCH=1 \
+  HETZNER_ROBOT_LIVE_DISRUPT=1 \
   go test ./internal/provider -run TestLive -v
 ```
 

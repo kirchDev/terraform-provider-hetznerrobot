@@ -295,8 +295,10 @@ data "hetznerrobot_ip_cancellation" "extra" {
 				ImportStateVerifyIdentifierAttribute: "ip",
 			},
 			{
-				Config:      fmt.Sprintf(`data "hetznerrobot_ip_cancellation" "main" { ip = %q }`, fxServer1IP),
-				ExpectError: regexp.MustCompile(`not possible to cancel`),
+				// Live (2026-10): Robot refuses even to read the cancellation of an
+				// IPv6 subnet; the data source surfaces that as an error.
+				Config:      fmt.Sprintf(`data "hetznerrobot_subnet_cancellation" "v6" { ip = %q }`, fxServer1V6),
+				ExpectError: regexp.MustCompile(`cancellation of IPv6 subnet is not possible`),
 			},
 		},
 		CheckDestroy: func(_ *terraformState) error {

@@ -31,9 +31,9 @@ The repo name format `NAMESPACE/terraform-provider-NAME` is **mandatory** for th
 
 27 resources and 36 data sources, every documented endpoint mapped. Verification differs by area — the README's _Test status_ table is the user-facing version of this list, keep the two in step:
 
-- **Live-verified (2026-10)** on an account with one auction server — `TestLive*` in `live_test.go`: every account-wide data source; `hetznerrobot_server`, `_ip`, `_subnet` (adopt, change, restore, import); `_rdns`, `_ssh_key`, `_firewall_template`, `_vswitch` (full lifecycle); `_boot_rescue` (activate, import, deactivate — never followed by a reset); `_wake_on_lan`; the boot, reset, firewall, traffic and cancellation-info data sources.
-- **Mock-only, by choice** — `_server_reset` and `_firewall` (disruptive on the only server), `_boot_linux`/`_vnc`/`_windows` and every `*_cancellation` resource (reinstall / cancel).
-- **Mock-only, nothing to test on** — `_failover`, `_ip_mac`/`_subnet_mac` (`MAC_NOT_AVAILABLE` for the auction server's addresses), the Storage Box resources, orders, products and `_currency` (ordering not enabled for the webservice user).
+- **Live-verified (2026-10)** on an account with one auction server — `TestLive*` in `live_test.go`: every account-wide data source; `hetznerrobot_server`, `_ip`, `_subnet` (adopt, change, restore, import); `_rdns`, `_ssh_key`, `_firewall_template`, `_vswitch` (full lifecycle); `_firewall` (adopt keeps the rules, replace, import — a Robot firewall apply takes about a minute); `_boot_rescue` + `_server_reset` (hardware reset into the Rescue System; Robot cleared `active` about 30 s later and the plan stayed empty); `_wake_on_lan`; the boot, reset, firewall, traffic and cancellation-info data sources.
+- **Mock-only, by choice** — `_boot_linux`/`_vnc`/`_windows` and every `*_cancellation` resource (reinstall / cancel), and **all ordering**: the three order resources, the product data sources and `_currency`. Ordering stays disabled for the test user on purpose; `test = true` is documented behaviour, never observed — the README carries a caution about it.
+- **Mock-only, nothing to test on** — `_failover`, `_ip_mac`/`_subnet_mac` (`MAC_NOT_AVAILABLE` for the auction server's addresses), the Storage Box resources.
 
 Everything else follows the documentation and runs through acceptance tests against `mock_*_test.go`, an in-memory model of the webservice; the live configurations also run against the mock (`TestAccMockLiveSuite`). When a live run contradicts the docs: teach the mock first, then fix the provider, then record the finding below and in the README.
 
@@ -78,11 +78,12 @@ Go (via `GNUmakefile`; needs **Go ≥ 1.26**). `go.mod` pins `toolchain go1.26.9
 | `make testacc` | `TF_ACC=1 go test ./...` — mock acceptance tests; needs a TF binary, no account  |
 | `make vuln`    | `govulncheck ./...` — reachable vulnerabilities, standard library included       |
 
-**Live tests** (real webservice; only throwaway entities — never a reset, reinstall, cancellation, reroute or real order):
+**Live tests** (real webservice; throwaway entities and restored settings; `HETZNER_ROBOT_LIVE_DISRUPT` adds the firewall rewrite and the resets — only for an idle server; never a reinstall, cancellation, reroute or order):
 
 ```bash
 TF_ACC=1 HETZNER_ROBOT_LIVE=1 HETZNER_ROBOT_USER=… HETZNER_ROBOT_PASSWORD=… \
   HETZNER_ROBOT_LIVE_SERVER=<n> HETZNER_ROBOT_LIVE_WRITE=1 HETZNER_ROBOT_LIVE_VSWITCH=1 \
+  HETZNER_ROBOT_LIVE_DISRUPT=1 \
   go test ./internal/provider -run TestLive -v
 ```
 

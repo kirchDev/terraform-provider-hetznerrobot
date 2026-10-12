@@ -3,12 +3,12 @@
 page_title: "hetznerrobot_ips Data Source - hetznerrobot"
 subcategory: ""
 description: |-
-  Lists the single IP addresses of the account, or of one server.
+  Lists the single IPv4 addresses of the account, or of one server. IPv6 addresses are subnets — see hetznerrobot_subnets.
 ---
 
 # hetznerrobot_ips (Data Source)
 
-Lists the single IP addresses of the account, or of one server.
+Lists the single IPv4 addresses of the account, or of one server. IPv6 addresses are subnets — see `hetznerrobot_subnets`.
 
 ## Example Usage
 

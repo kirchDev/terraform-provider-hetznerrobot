@@ -3,12 +3,12 @@
 page_title: "hetznerrobot_ip Resource - hetznerrobot"
 subcategory: ""
 description: |-
-  A single IPv4 address of a server, adopted to manage its traffic warnings. IPs cannot be created here (order one with hetznerrobot_server_addon_order). Destroying the resource only forgets the IP; cancel it with hetznerrobot_ip_cancellation.
+  A single IPv4 address of a server, adopted to manage its traffic warnings. IPs cannot be created here (order one with hetznerrobot_server_addon_order). Destroying the resource only forgets the IP; cancel it with hetznerrobot_ip_cancellation. A server's IPv6 addresses are a /64 subnet: manage their traffic warnings with hetznerrobot_subnet.
 ---
 
 # hetznerrobot_ip (Resource)
 
-A single IPv4 address of a server, adopted to manage its traffic warnings. IPs cannot be created here (order one with `hetznerrobot_server_addon_order`). Destroying the resource only forgets the IP; cancel it with `hetznerrobot_ip_cancellation`.
+A single IPv4 address of a server, adopted to manage its traffic warnings. IPs cannot be created here (order one with `hetznerrobot_server_addon_order`). Destroying the resource only forgets the IP; cancel it with `hetznerrobot_ip_cancellation`. A server's IPv6 addresses are a /64 subnet: manage their traffic warnings with `hetznerrobot_subnet`.
 
 ## Example Usage
 

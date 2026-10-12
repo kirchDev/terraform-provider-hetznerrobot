@@ -332,9 +332,15 @@ func (m *mockRobot) addrCancellation(kind, ip string, form url.Values, revoke bo
 	if !ok {
 		return mockErr(404, "IP_NOT_FOUND", notFound)
 	}
-	// A server's main IP and its main IPv6 subnet go with the server.
-	if s, _ := m.get("server", mockKey(e["server_number"])); s != nil && (s["server_ip"] == ip || s["server_ipv6_net"] == ip) {
-		return mockErr(409, "CONFLICT", "It is not possible to cancel this "+map[string]string{"ip": "IP", "subnet": "subnet"}[kind]+".")
+	// Live (2026-10): even reading the cancellation of an IPv6 subnet is a 409
+	// with this message; the main IPv4 address answers the read normally.
+	if kind == "subnet" && strings.Contains(ip, ":") {
+		return mockErr(409, "CONFLICT", "cancellation of IPv6 subnet is not possible")
+	}
+	// A server's main IP goes with the server — the read works, a cancellation
+	// does not (assumed; not tried live).
+	if s, _ := m.get("server", mockKey(e["server_number"])); s != nil && s["server_ip"] == ip && (form != nil || revoke) {
+		return mockErr(409, "CONFLICT", "It is not possible to cancel this IP.")
 	}
 	table := kind + "_cancellation"
 	c, cancelled := m.get(table, ip)

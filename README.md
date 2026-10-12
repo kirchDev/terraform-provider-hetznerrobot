@@ -24,7 +24,7 @@ resource "hetznerrobot_failover" "vip" {
 Your dedicated servers declared in HCL and reconciled by OpenTofu — not clicked together in Robot. Covers the complete [Robot webservice](https://robot.hetzner.com/doc/webservice/en.html); the Hetzner Cloud side stays with the official [`hcloud`](https://search.opentofu.org/provider/hetznercloud/hcloud/latest) provider.
 
 > [!IMPORTANT]
-> **Pre-1.0, mock-tested.** Every resource and data source is built from the official documentation and runs through acceptance tests against an in-memory model of the webservice; it has **not yet been run against the live API** — see [Test status](#-test-status). Pin an exact version, and try `test = true` before a real order.
+> **Pre-1.0.** The everyday parts are verified against the live webservice; what could not be tried on the test account — resets, the firewall of a running server, reinstalls, failover, Storage Boxes, orders — is built from the official documentation and covered by mock tests only. See [Test status](#-test-status). Pin an exact version, and try `test = true` before a real order.
 
 ## 📦 Install & run
 
@@ -111,13 +111,20 @@ Every resource and data source runs through acceptance tests against an in-memor
 
 | Area | Live-verified | Notes |
 | :-- | :-: | :-- |
-| Everything | ❌ **not yet** | built from the [official documentation](https://robot.hetzner.com/doc/webservice/en.html), mock-tested only |
+| `hetznerrobot_server`, `hetznerrobot_ip`, `hetznerrobot_subnet` | ✅ | adopt, rename / change traffic warnings, restore, import |
+| `hetznerrobot_rdns`, `hetznerrobot_ssh_key`, `hetznerrobot_firewall_template`, `hetznerrobot_vswitch` | ✅ | create → update → import → destroy |
+| `hetznerrobot_boot_rescue`, `hetznerrobot_wake_on_lan` | ✅ | activate → import → deactivate (no reset); WoL packet |
+| Data sources: servers, IPs, subnets, rDNS, SSH keys, resets, boot, firewall, firewall templates, vSwitches, failovers, Storage Boxes, traffic, server / IP cancellation info | ✅ | read, including Robot's empty-collection answers |
+| `hetznerrobot_server_reset`, `hetznerrobot_firewall` | ❌ **untested** | would disrupt the test account's only server |
+| `hetznerrobot_boot_linux`, `…_vnc`, `…_windows`, all `*_cancellation` resources | ❌ **untested** | reinstall or cancel — deliberately never run live |
+| `hetznerrobot_failover`, `hetznerrobot_ip_mac`, `hetznerrobot_subnet_mac`, Storage Box resources | ❌ **untested** | the test account has no failover IP, no MAC-capable address and no Storage Box |
+| Orders, products, `hetznerrobot_currency` | ❌ **untested** | ordering is not enabled for the test account's webservice user |
 
-A live suite is ready and safe by design — it only creates throwaway entities (SSH keys, firewall templates, a vSwitch, a reverse DNS entry inside a server's IPv6 /64, an order with `test = true`) and never resets, reinstalls, cancels or reroutes anything:
+The untested parts follow the [official documentation](https://robot.hetzner.com/doc/webservice/en.html) and the behaviour of the verified endpoints. The live suite is safe by design — throwaway entities and settings it restores; it never resets, reinstalls, cancels or reroutes anything:
 
 ```bash
 TF_ACC=1 HETZNER_ROBOT_LIVE=1 HETZNER_ROBOT_USER=… HETZNER_ROBOT_PASSWORD=… \
-  HETZNER_ROBOT_LIVE_SERVER=<server number> HETZNER_ROBOT_LIVE_VSWITCH=1 HETZNER_ROBOT_LIVE_ORDER=1 \
+  HETZNER_ROBOT_LIVE_SERVER=<server number> HETZNER_ROBOT_LIVE_WRITE=1 HETZNER_ROBOT_LIVE_VSWITCH=1 \
   go test ./internal/provider -run TestLive -v
 ```
 
